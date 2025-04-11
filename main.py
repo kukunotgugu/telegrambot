@@ -1,10 +1,11 @@
 
+import os
 import telebot
 import datetime
 from telebot import types
 
-# Your bot token
-TOKEN = '7782555253:AAGVtM9WSNLrBpGAXLIX22q3dQOqqDH73oI'  # @cocochroach_bot
+# 从环境变量读取 Telegram Token
+TOKEN = os.getenv("TOKEN")  # Railway 设置的变量名
 bot = telebot.TeleBot(TOKEN)
 
 # Default config
