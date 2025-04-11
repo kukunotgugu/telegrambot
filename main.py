@@ -6,6 +6,7 @@ from telebot import types
 
 # 从环境变量读取 Telegram Token（Railway 设置的变量名）
 TOKEN = os.getenv("TOKEN")
+print(f"当前使用的 TOKEN: {TOKEN}")
 bot = telebot.TeleBot(TOKEN)
 
 # Default config
