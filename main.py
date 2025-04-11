@@ -4,7 +4,7 @@ import time
 import datetime
 from telebot import types
 
-# ✅ 你的 Bot Token
+# ✅ Bot Token
 TOKEN = '7782555253:AAGVtM9WSNLrBpGAXLIX22q3dQOqqDH73oI'
 bot = telebot.TeleBot(TOKEN)
 
@@ -57,7 +57,7 @@ def handle_message(message):
     username = message.from_user.username or message.from_user.first_name or "无名氏"
     text = message.text.lower()
 
-    # 🆔 打印 Chat ID（私聊 / 群组）
+    # 打印 Chat ID（方便你获取）
     print("🆔 Chat ID:", message.chat.id)
 
     # 活跃度记录
@@ -65,13 +65,13 @@ def handle_message(message):
         activity[user_id] = {'name': username, 'count': 0}
     activity[user_id]['count'] += 1
 
-    # 关键词自动回复
+    # 自动回复关键词
     for keyword, reply in keywords.items():
         if keyword in text:
             bot.reply_to(message, reply)
             return
 
-    # /rank 命令也能直接用
+    # 命令 /rank（除了按钮）
     if text == "/rank":
         sorted_activity = sorted(activity.values(), key=lambda x: x['count'], reverse=True)
         rank_text = "🏆 活跃榜 🏆\n\n"
@@ -79,19 +79,18 @@ def handle_message(message):
             rank_text += f"{i}. {user['name']} - {user['count']}条消息\n"
         bot.reply_to(message, rank_text)
 
-# ✅ 可选：定时群发提醒（获取 chat_id 后再打开）
-def scheduled_message():
-    while True:
-        try:
-            # 📌 替换成你实际群组的 ID（用日志里的打印值）
-            # chat_id = -100xxxxxxxxxx
-            # bot.send_message(chat_id, "⏰ 提醒：大家记得活跃聊天哦！保持正能量！💬")
-            time.sleep(3 * 3600)
-        except Exception as e:
-            print(f"Error in scheduled_message: {e}")
+# ✅ 已禁用定时发消息功能
+# def scheduled_message():
+#     while True:
+#         try:
+#             chat_id = -1001234567890  # 示例：你可以换成你自己的群组 ID
+#             bot.send_message(chat_id, "⏰ 提醒：大家记得活跃聊天哦！💬")
+#             time.sleep(3 * 3600)
+#         except Exception as e:
+#             print(f"Error in scheduled_message: {e}")
 
-# ✅ 启动定时线程（目前禁用）
-threading.Thread(target=scheduled_message, daemon=True).start()
+# ✅ 禁用定时线程启动
+# threading.Thread(target=scheduled_message, daemon=True).start()
 
 # ✅ 启动 bot
 print("Bot is running...")
