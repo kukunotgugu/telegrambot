@@ -1,62 +1,102 @@
+
 import telebot
-import threading
-import time
 import datetime
 from telebot import types
 
+# Your bot token
 TOKEN = '7782555253:AAGVtM9WSNLrBpGAXLIX22q3dQOqqDH73oI'
 bot = telebot.TeleBot(TOKEN)
 
-keywords = {
-    "你好": "你好呀！👋",
-    "hi": "Hello! 😃",
-    "早上好": "早安☀️祝你今天心情好！",
-    "晚安": "晚安🌙做个好梦～",
-    "干嘛": "想你了呀～🥰"
+# Default config
+config = {
+    "welcome": "🎉 欢迎加入本群！记得阅读群规～",
+    "keywords": {
+        "你好": "你好呀！👋",
+        "hi": "Hello! 😃",
+        "早上好": "早安☀️祝你今天心情好！",
+        "晚安": "晚安🌙做个好梦～",
+        "干嘛": "想你了呀～🥰"
+    }
 }
 
+# Activity tracker
 activity = {}
 
+# Handle new members
 @bot.message_handler(content_types=['new_chat_members'])
 def welcome_new_member(message):
-    for new_member in message.new_chat_members:
-        name = new_member.first_name or "新朋友"
-        welcome_text = f"🎉 欢迎 {name} 加入本群！记得阅读群规哦～"
-        bot.send_message(message.chat.id, welcome_text)
+    name = message.new_chat_members[0].first_name or "新朋友"
+    welcome_text = config.get("welcome", "欢迎来到本群～")
+    bot.send_message(message.chat.id, f"{welcome_text}
+👤 {name}")
 
-@bot.message_handler(commands=['menu'])
-def send_menu(message):
+# Show control panel
+@bot.message_handler(commands=['admin'])
+def admin_panel(message):
     markup = types.InlineKeyboardMarkup()
-    btn1 = types.InlineKeyboardButton("📊 活跃榜", callback_data="rank")
-    btn2 = types.InlineKeyboardButton("🕓 当前时间", callback_data="time")
-    markup.row(btn1, btn2)
-    bot.send_message(message.chat.id, "请选择一个操作：", reply_markup=markup)
+    markup.add(types.InlineKeyboardButton("📝 设置欢迎语", callback_data="set_welcome"))
+    markup.add(types.InlineKeyboardButton("🔁 添加关键词自动回复", callback_data="set_reply"))
+    markup.add(types.InlineKeyboardButton("📄 查看当前设定", callback_data="view_config"))
+    markup.add(types.InlineKeyboardButton("🗑️ 删除关键词", callback_data="delete_reply"))
+    bot.send_message(message.chat.id, "🔧 请选择操作：", reply_markup=markup)
 
+# Callback handler for admin buttons
 @bot.callback_query_handler(func=lambda call: True)
-def handle_buttons(call):
-    if call.data == "rank":
-        sorted_activity = sorted(activity.values(), key=lambda x: x['count'], reverse=True)
-        rank_text = "🏆 活跃榜 🏆\n\n"
-        for i, user in enumerate(sorted_activity[:10], start=1):
-            rank_text += f"{i}. {user['name']} - {user['count']}条消息\n"
-        bot.send_message(call.message.chat.id, rank_text)
-    elif call.data == "time":
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        bot.send_message(call.message.chat.id, f"🕓 当前时间：{now}")
+def callback_handler(call):
+    if call.data == "set_welcome":
+        bot.send_message(call.message.chat.id, "📝 请输入新的欢迎语：")
+        bot.register_next_step_handler(call.message, save_welcome)
+    elif call.data == "set_reply":
+        bot.send_message(call.message.chat.id, "🔁 请输入格式：关键词=回复内容")
+        bot.register_next_step_handler(call.message, save_reply)
+    elif call.data == "view_config":
+        view_config(call.message)
+    elif call.data == "delete_reply":
+        bot.send_message(call.message.chat.id, "🗑️ 请输入要删除的关键词：")
+        bot.register_next_step_handler(call.message, delete_reply)
 
+def save_welcome(message):
+    config["welcome"] = message.text
+    bot.send_message(message.chat.id, "✅ 欢迎语已更新！")
+
+def save_reply(message):
+    try:
+        keyword, reply = message.text.split("=", 1)
+        config["keywords"][keyword.strip()] = reply.strip()
+        bot.send_message(message.chat.id, f"✅ 添加自动回复：{keyword.strip()} ➜ {reply.strip()}")
+    except:
+        bot.send_message(message.chat.id, "❌ 格式错误，请用 关键词=回复内容")
+
+def delete_reply(message):
+    keyword = message.text.strip()
+    if keyword in config["keywords"]:
+        del config["keywords"][keyword]
+        bot.send_message(message.chat.id, f"✅ 已删除关键词：{keyword}")
+    else:
+        bot.send_message(message.chat.id, f"❌ 找不到关键词：{keyword}")
+
+@bot.message_handler(commands=['viewconfig'])
+def view_config(message):
+    welcome = config.get("welcome", "未设置欢迎语")
+    keyword_lines = [f"{k} ➜ {v}" for k, v in config["keywords"].items()]
+    keyword_text = "\n".join(keyword_lines) if keyword_lines else "无自动回复设置"
+    full_text = f"📄 当前设定：\n\n📝 欢迎语：\n{welcome}\n\n🔁 自动回复关键词：\n{keyword_text}"
+    bot.send_message(message.chat.id, full_text)
+
+# Handle regular messages
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
     username = message.from_user.username or message.from_user.first_name or "无名氏"
     text = message.text.lower()
 
-    print("🆔 Chat ID:", message.chat.id)
-
+    # Track activity
     if user_id not in activity:
         activity[user_id] = {'name': username, 'count': 0}
     activity[user_id]['count'] += 1
 
-    for keyword, reply in keywords.items():
+    # Respond to keywords
+    for keyword, reply in config["keywords"].items():
         if keyword in text:
             bot.reply_to(message, reply)
             return
@@ -67,8 +107,6 @@ def handle_message(message):
         for i, user in enumerate(sorted_activity[:10], start=1):
             rank_text += f"{i}. {user['name']} - {user['count']}条消息\n"
         bot.reply_to(message, rank_text)
-
-# ❌ 定时发消息功能完全删除（确保不再报错）
 
 print("Bot is running...")
 bot.infinity_polling()
