@@ -4,8 +4,8 @@ import telebot
 import datetime
 from telebot import types
 
-# 从环境变量读取 Telegram Token
-TOKEN = os.getenv("TOKEN")  # Railway 设置的变量名
+# 从环境变量读取 Telegram Token（Railway 设置的变量名）
+TOKEN = os.getenv("TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 # Default config
@@ -84,8 +84,6 @@ def handle_message(message):
     user_id = message.from_user.id
     username = message.from_user.username or message.from_user.first_name or "无名氏"
     text = message.text.lower()
-
-    print("🆔 Chat ID:", message.chat.id)
 
     if user_id not in activity:
         activity[user_id] = {'name': username, 'count': 0}
