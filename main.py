@@ -4,7 +4,7 @@ import datetime
 from telebot import types
 
 # Your bot token
-TOKEN = '7782555253:AAGVtM9WSNLrBpGAXLIX22q3dQOqqDH73oI'
+TOKEN = '7782555253:AAGVtM9WSNLrBpGAXLIX22q3dQOqqDH73oI'  # @cocochroach_bot
 bot = telebot.TeleBot(TOKEN)
 
 # Default config
@@ -19,18 +19,14 @@ config = {
     }
 }
 
-# Activity tracker
 activity = {}
 
-# Handle new members
 @bot.message_handler(content_types=['new_chat_members'])
 def welcome_new_member(message):
     name = message.new_chat_members[0].first_name or "新朋友"
     welcome_text = config.get("welcome", "欢迎来到本群～")
-    bot.send_message(message.chat.id, f"{welcome_text}
-👤 {name}")
+    bot.send_message(message.chat.id, f"{welcome_text}\n👤 {name}")
 
-# Show control panel
 @bot.message_handler(commands=['admin'])
 def admin_panel(message):
     markup = types.InlineKeyboardMarkup()
@@ -40,7 +36,6 @@ def admin_panel(message):
     markup.add(types.InlineKeyboardButton("🗑️ 删除关键词", callback_data="delete_reply"))
     bot.send_message(message.chat.id, "🔧 请选择操作：", reply_markup=markup)
 
-# Callback handler for admin buttons
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     if call.data == "set_welcome":
@@ -83,19 +78,18 @@ def view_config(message):
     full_text = f"📄 当前设定：\n\n📝 欢迎语：\n{welcome}\n\n🔁 自动回复关键词：\n{keyword_text}"
     bot.send_message(message.chat.id, full_text)
 
-# Handle regular messages
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_id = message.from_user.id
     username = message.from_user.username or message.from_user.first_name or "无名氏"
     text = message.text.lower()
 
-    # Track activity
+    print("🆔 Chat ID:", message.chat.id)
+
     if user_id not in activity:
         activity[user_id] = {'name': username, 'count': 0}
     activity[user_id]['count'] += 1
 
-    # Respond to keywords
     for keyword, reply in config["keywords"].items():
         if keyword in text:
             bot.reply_to(message, reply)
